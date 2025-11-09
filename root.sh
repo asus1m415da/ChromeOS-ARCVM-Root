@@ -12,8 +12,8 @@ RESET='\e[0m'
 BACKUP_PATH=/mnt/stateful_partition/arcvm_root
 KERNEL_PATH=/opt/google/vms/android
 
-KSU_VER='v1.0.5'
-KERNEL_VER='5.10.230'
+KSU_VER='v2.0.0'
+KERNEL_VER='5.10.239'
 ARCH="$(arch)"
 
 # prevent conflict between system libraries and Chromebrew libraries
