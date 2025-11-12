@@ -10,9 +10,10 @@ BACKUP_PATH=/mnt/stateful_partition/arcvm_root
 KERNEL_PATH=/opt/google/vms/android
 
 # Versión y kernel
-KSU_VER='v1.1.1-HOTFIX'
+KSU_VER='v1.1.1'
 KERNEL_VER='5.10.239'
-ARCH="$(arch)"
+ARCH="x86_64"
+SHA256_EXPECTED="a688468dd5b6cb0f17765a1c1354aa15662397788a0260e8ab60186d0eef985e"
 
 unset LD_LIBRARY_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -23,13 +24,8 @@ function remount_rootfs() {
 }
 
 function remove_rootfs_verification() {
-  if [[ "$ARCH" =~ "arm64" ]];then
-    /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 2
-    /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 4
-  else
-    /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 3
-    /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 5
-  fi
+  /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 3
+  /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 5
   echo -e "${YELLOW}Please run this script again after reboot.${RESET}"
   echo '[+] Rebooting in 3 seconds...'
   sleep 3
@@ -58,19 +54,16 @@ fi
 
 cd /tmp
 echo '[+] Downloading kernel...'
-echo "${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
+URL="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
+curl -L -# "$URL" -o ksu.zip
 
-URL_NEXT="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
-URL_FALLBACK="https://github.com/tiann/KernelSU/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
-
-# Intento principal
-if ! curl -fL -# "$URL_NEXT" -o ksu.zip; then
-  echo -e "${YELLOW}[!] KernelSU-Next download failed, trying fallback...${RESET}"
-  if ! curl -fL -# "$URL_FALLBACK" -o ksu.zip; then
-    echo -e "${RED}[!] Both KernelSU-Next and fallback download failed.${RESET}"
-    exit 1
-  fi
+echo '[+] Verifying SHA256 checksum...'
+SHA256_ACTUAL=$(sha256sum ksu.zip | awk '{print $1}')
+if [[ "$SHA256_ACTUAL" != "$SHA256_EXPECTED" ]]; then
+  echo -e "${RED}[!] SHA256 mismatch! Expected ${SHA256_EXPECTED}, got ${SHA256_ACTUAL}.${RESET}"
+  exit 1
 fi
+echo -e "${GREEN}[+] Checksum OK.${RESET}"
 
 echo '[+] Decompressing kernel...'
 mkdir -p ksu
