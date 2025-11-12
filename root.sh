@@ -12,11 +12,11 @@ RESET='\e[0m'
 BACKUP_PATH=/mnt/stateful_partition/arcvm_root
 KERNEL_PATH=/opt/google/vms/android
 
-KSU_VER='v2.0.0'
+# Usa KernelSU-Next en lugar del repo anterior
+KSU_VER='v1.1.1 HOTFIX'
 KERNEL_VER='5.10.239'
 ARCH="$(arch)"
 
-# prevent conflict between system libraries and Chromebrew libraries
 unset LD_LIBRARY_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
@@ -26,7 +26,6 @@ function remount_rootfs() {
 }
 
 function remove_rootfs_verification() {
-  # KERN-A B for arm  ROOT-A B for x64
   if [[ "$ARCH" =~ "arm64" ]];then
     /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 2
     /usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification --partitions 4
@@ -54,22 +53,16 @@ if ! remount_rootfs; then
   echo -e "${YELLOW}Remount failed. Did you disable rootFS verification?${RESET}" >&2
   read -N1 -p 'Disable rootFS verification now? (This will reboot your system) [Y/n]: ' response < /dev/tty
   echo -e "\n"
-
   case $response in
-  Y|y)
-    remove_rootfs_verification
-  ;;
-  *)
-    echo 'No changes made.'
-    exit 1
-  ;;
+    Y|y) remove_rootfs_verification ;;
+    *) echo 'No changes made.'; exit 1 ;;
   esac
 fi
 
 cd /tmp
 echo '[+] Downloading kernel...'
 echo "${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
-curl -L -'#' "https://github.com/tiann/KernelSU/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip" -o ksu.zip
+curl -L -'#' "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip" -o ksu.zip
 
 echo '[+] Decompressing kernel...'
 mkdir -p ksu
@@ -77,7 +70,6 @@ mount-zip ksu.zip ksu
 cp ksu/*Image ${KERNEL_PATH}/vmlinux.ksu
 
 cd ${KERNEL_PATH}
-
 echo '[+] Backing up original kernel...'
 mkdir -p ${BACKUP_PATH}
 mv vmlinux vmlinux.orig
@@ -92,16 +84,11 @@ rmdir /tmp/ksu
 
 echo
 echo -e "${GREEN}[+] All done. Please reboot to apply changes."
-echo -e "${GREEN}[+] You can open the KernelSU app to validate root access after reboot.${RESET}"
+echo -e "${GREEN}[+] You can open the KernelSU-Next app to validate root access after reboot.${RESET}"
 echo
 
 read -N1 -p 'Reboot now? [Y/n]: ' response < /dev/tty
 echo -e "\n"
-
 case $response in
-Y|y)
-  echo 'Rebooting...'
-  reboot
-  sleep 10
-;;
+  Y|y) echo 'Rebooting...'; reboot; sleep 10 ;;
 esac
