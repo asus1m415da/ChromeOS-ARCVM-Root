@@ -9,7 +9,7 @@ RESET='\e[0m'
 BACKUP_PATH=/mnt/stateful_partition/arcvm_root
 KERNEL_PATH=/opt/google/vms/android
 
-# Versión y kernel
+# Versión y kernel correctos
 KSU_VER='v1.1.1'
 KERNEL_VER='5.10.239'
 ARCH="x86_64"
