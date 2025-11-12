@@ -4,16 +4,13 @@ set -eu
 RED='\e[1;31m'
 YELLOW='\e[1;33m'
 GREEN='\e[1;32m'
-BLUE='\e[1;34m'
-GRAY='\e[0;37m'
-MAGENTA='\e[1;35m'
 RESET='\e[0m'
 
 BACKUP_PATH=/mnt/stateful_partition/arcvm_root
 KERNEL_PATH=/opt/google/vms/android
 
-# Usa KernelSU-Next en lugar del repo anterior
-KSU_VER='v1.1.1 HOTFIX'
+# Versión y kernel
+KSU_VER='v1.1.1-HOTFIX'
 KERNEL_VER='5.10.239'
 ARCH="$(arch)"
 
@@ -62,7 +59,18 @@ fi
 cd /tmp
 echo '[+] Downloading kernel...'
 echo "${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
-curl -L -'#' "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip" -o ksu.zip
+
+URL_NEXT="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
+URL_FALLBACK="https://github.com/tiann/KernelSU/releases/download/${KSU_VER}/kernel-ARCVM-${ARCH}-${KERNEL_VER}.zip"
+
+# Intento principal
+if ! curl -fL -# "$URL_NEXT" -o ksu.zip; then
+  echo -e "${YELLOW}[!] KernelSU-Next download failed, trying fallback...${RESET}"
+  if ! curl -fL -# "$URL_FALLBACK" -o ksu.zip; then
+    echo -e "${RED}[!] Both KernelSU-Next and fallback download failed.${RESET}"
+    exit 1
+  fi
+fi
 
 echo '[+] Decompressing kernel...'
 mkdir -p ksu
@@ -79,11 +87,11 @@ echo "[+] Pointing ${KERNEL_PATH}/vmlinux to vmlinux.ksu..."
 ln -s vmlinux.ksu ${KERNEL_PATH}/vmlinux
 
 echo "[+] Cleanup..."
-fusermount -u /tmp/ksu
-rmdir /tmp/ksu
+fusermount -u /tmp/ksu || true
+rmdir /tmp/ksu || true
 
 echo
-echo -e "${GREEN}[+] All done. Please reboot to apply changes."
+echo -e "${GREEN}[+] All done. Please reboot to apply changes.${RESET}"
 echo -e "${GREEN}[+] You can open the KernelSU-Next app to validate root access after reboot.${RESET}"
 echo
 
